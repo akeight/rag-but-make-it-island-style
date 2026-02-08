@@ -6,6 +6,9 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FileText, CheckCircle2, ArrowRight } from 'lucide-react';
 import { AnimatedBackground } from '@/components/animated-background';
+import AnimatedList from '@/components/ui/animated-list';
+import EmailCard from '@/components/email-card';
+import { mockDocuments } from '@/lib/mock-data';
 
 export default function Page() {
   const router = useRouter();
@@ -97,41 +100,25 @@ export default function Page() {
                   </p>
                   
                   <div className="space-y-2">
-                    <div className="text-sm font-medium">Sources (2):</div>
-                    
-                    <Card className="p-3 bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
-                      <div className="flex items-start gap-3">
-                        <FileText className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">
-                            Flight Logs (1997-2005)
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Page 23
-                          </div>
-                          <div className="text-xs mt-1 line-clamp-2">
-                            &quot;Flight manifest dated July 8, 2002, shows passenger list...&quot;
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                    
-                    <Card className="p-3 bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
-                      <div className="flex items-start gap-3">
-                        <FileText className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">
-                            Flight Logs (1997-2005)
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Page 45
-                          </div>
-                          <div className="text-xs mt-1 line-clamp-2">
-                            &quot;Records indicate multiple international flights...&quot;
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
+                  <div className="text-sm font-medium">Sources (5):</div>
+                  <AnimatedList
+                    items={mockDocuments.slice(0, 5).map((document) => (
+                      <EmailCard
+                        key={document.id}
+                        title={document.title}
+                        page={1}
+                        snippet={document.content}
+                      />
+                    ))}
+                    className="w-full"
+                    listClassName="max-h-[200px]"
+                    itemClassName="bg-transparent p-0 text-foreground"
+                    itemGapClassName="mb-2"
+                    showGradients={false}
+                    enableArrowNavigation={false}
+                    displayScrollbar={true}
+                  />
+
                   </div>
                 </div>
               </div>
