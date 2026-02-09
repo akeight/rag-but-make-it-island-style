@@ -9,7 +9,7 @@ A source-grounded RAG (Retrieval-Augmented Generation) chatbot for exploring the
 
 Here's a walkthrough of implemented user stories:
 
-<img src="./public/home.png" alt="Walkthrough demo" />
+<img src="./public/walkthrough.gif" alt="Walkthrough demo" />
 
 
 ---
