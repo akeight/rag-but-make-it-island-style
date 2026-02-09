@@ -1,36 +1,121 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Epstein Emails RAG Chatbot (Next.js + Bun + MongoDB Atlas)
 
-## Getting Started
+A source-grounded RAG (Retrieval-Augmented Generation) chatbot for exploring the **Epstein emails dataset** via a clean web UI. The app ingests the dataset into **MongoDB Atlas**, retrieves relevant chunks using **Atlas Vector Search**, and generates answers with an LLM while returning **citations** you can click to verify in a simple document/thread viewer.
 
-First, run the development server:
+> **Note:** The dataset originates from OCR’d public documents and may contain sensitive/graphic content. This project is built for exploration and verification — always check sources.
 
+---
+## Video Walkthrough
+
+Here's a walkthrough of implemented user stories:
+
+<img src="./public/home.png" alt="Walkthrough demo" />
+
+
+---
+
+## Features (MVP → Full RAG)
+- Landing page (`/`) with hero + CTA
+- Chat page (`/chat`)
+- Dataset ingestion script (threads + messages) into MongoDB
+- (Planned) Chunking + embeddings backfill
+- (Planned) Retrieval endpoint using Atlas Vector Search
+- (Planned) Citations panel + thread viewer (`/docs/[threadKey]`)
+- Rate limiting + cost controls on chat endpoints
+
+---
+
+## Tech stack
+- **Next.js** (App Router)
+- **Bun** (package manager + runtime)
+- **Tailwind CSS**
+- **shadcn/ui** components
+- **React Bits** for UI/background accents
+- **MongoDB Atlas** (document store + Vector Search)
+- **OpenAI API** (server-side key in env secrets)
+
+---
+
+## Architecture (high level)
+1. **Ingest** dataset → store `threads` + `messages` in MongoDB
+2. **Chunk** message bodies → store `chunks`
+3. **Embed** chunks → store `embedding[]` on each chunk
+4. **Retrieve**: embed query → `$vectorSearch` over `chunks.embedding`
+5. **Generate**: LLM answers using retrieved context + returns citations
+
+---
+
+## Repo structure
+```txt
+.
+├─ app/
+│  ├─ layout.tsx
+│  ├─ page.tsx                  # landing page (/)
+│  ├─ chat/page.tsx             # chat UI (/chat)
+│  ├─ docs/[threadKey]/page.tsx # source viewer (planned)
+│  └─ api/
+│     ├─ health/route.ts
+│     ├─ retrieve/route.ts      # planned
+│     └─ chat/route.ts          # planned
+├─ components/
+│  └─ ui/                       # shadcn components live here
+├─ lib/
+│  ├─ mongodb.ts
+│  ├─ rateLimit.ts
+│  ├─ embeddings.ts             # planned
+│  └─ rag.ts                    # planned
+├─ scripts/
+│  └─ ingest.ts                 # planned
+├─ public/
+├─ .env.local
+├─ components.json              # shadcn config
+├─ tailwind.config.ts
+├─ tsconfig.json
+├─ package.json
+└─ bun.lock
+```
+---
+
+## Getting started
+### Prereqs
+- Bun installed
+- A MongoDB Atlas cluster + connection string
+- OpenAI API key
+
+### Install
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/akeight/rag-but-make-it-island-style.git
+bun install
+```
+### Environment variables
+Create .env.local in the repo root:
+```bash
+MONGODB_URI="mongodb+srv://..."
+MONGODB_DB="epstein_rag"
+
+# Server-side only:
+OPENAI_API_KEY="..."
+RATE_LIMIT_SALT="some-random-string"
+ALLOWED_ORIGINS="http://localhost:3000,https://your-vercel-domain.com"
+```
+### Run dev server
+```bash
+bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## References
+Dataset (Hugging Face):
+https://huggingface.co/datasets/notesbymuneeb/epstein-emails
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Hugging Face datasets-server /rows API:
+https://huggingface.co/docs/dataset-viewer/en/rows
 
-## Learn More
+MongoDB Atlas Vector Search:
+https://www.mongodb.com/docs/atlas/atlas-vector-search/
 
-To learn more about Next.js, take a look at the following resources:
+OpenAI API:
+https://platform.openai.com/docs/
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
