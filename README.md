@@ -18,8 +18,8 @@ Here's a walkthrough of implemented user stories:
 - Landing page (`/`) with hero + CTA
 - Chat page (`/chat`)
 - Dataset ingestion script (threads + messages) into MongoDB
-- (Planned) Chunking + embeddings backfill
-- (Planned) Retrieval endpoint using Atlas Vector Search
+- Chunking + embeddings backfill
+- Retrieval endpoint using Atlas Vector Search
 - (Planned) Citations panel + thread viewer (`/docs/[threadKey]`)
 - Rate limiting + cost controls on chat endpoints
 
@@ -55,8 +55,8 @@ Here's a walkthrough of implemented user stories:
 │  ├─ docs/[threadKey]/page.tsx # source viewer (planned)
 │  └─ api/
 │     ├─ health/route.ts
-│     ├─ retrieve/route.ts      # planned
-│     └─ chat/route.ts          # planned
+│     ├─ retrieve/route.ts      # vector search answer api
+│     └─ chat/route.ts          # User question api
 ├─ components/
 │  └─ ui/                       # shadcn components live here
 ├─ lib/
@@ -91,12 +91,33 @@ bun install
 Create .env.local in the repo root:
 ```bash
 MONGODB_URI="mongodb+srv://..."
-MONGODB_DB="epstein_rag"
+MONGODB_DB="your-db-name"
 
 # Server-side only:
 OPENAI_API_KEY="..."
+CHAT_MODEL="gpt-5.2"
 RATE_LIMIT_SALT="some-random-string"
-ALLOWED_ORIGINS="http://localhost:3000,https://your-vercel-domain.com"
+ALLOWED_ORIGINS="http://localhost:3000"
+
+# These are set to sucessfully injest dataset from huggingface to mongodb database
+HF_DATASET="notesbymuneeb/epstein-emails"
+HF_CONFIG="default"
+HF_SPLIT="train"  
+HF_PAGE_SIZE="25"
+HF_START_OFFSET="4800"
+HF_DELAY_MS=2000
+HF_MAX_ROWS="0" 
+STORE_RAW_MESSAGE="false" 
+
+CHUNK_MAX_CHARS=2000
+CHUNK_OVERLAP_CHARS=200
+CHUNK_BATCH_MESSAGES=200
+
+EMBED_MODEL=text-embedding-3-small
+EMBED_BATCH_SIZE=64
+EMBED_DELAY_MS=250
+EMBED_MAX_CHUNKS=0          #(0 = no cap; useful for testing)
+EMBED_QUERY_FILTER='{}'     #(extra mongo filter JSON for chunks, e.g. {"threadKey":"..."} )
 ```
 ### Run dev server
 ```bash
