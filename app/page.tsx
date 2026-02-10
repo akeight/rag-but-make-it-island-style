@@ -6,15 +6,25 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FileText, CheckCircle2, ArrowRight } from 'lucide-react';
 import { AnimatedBackground } from '@/components/animated-background';
-import AnimatedList from '@/components/ui/animated-list';
-import EmailCard from '@/components/email-card';
-import { mockDocuments } from '@/lib/mock-data';
+import AnimatedList from '@/components/animated-list';
+import { ThreadEmailCard } from '@/components/thread-email-card';
 
 export default function Page() {
   const router = useRouter();
   const handleNavigate = (page: string) => {
     router.push(`/${page}`);
   };
+
+  const thread = {
+    threadKey: "973d8afe13670c897f791c1a8e4c91a8fcc6058d7163355f90b750ce42a969d0",
+    subject: "Re: What is going on with your man Jes?"
+  };
+
+  const messages = [
+    { orderIndex: 0, sender: "Thomas Jr., Landon Fo", subject: "Re: What is going on with your man Jes?", body: "Other stuff I am sympathetic -- but to answer a random gmail email, that is not smart!\n\nHow are you Trump contacts responding to Comey?", timestampRaw: "Thursday, May 11 2017 08:22 PM" },
+    { orderIndex: 1, sender: "jeffrey E. <jeevacation@gmail.com>", subject: "Re: What is going on with your man Jes?", body: "iknow, everyone gets their turn in the barrel", timestampRaw: "Thu, May 11, 2017 at 4:18 PM" },
+    { orderIndex: 2, sender: "Thomas Jr., Landon Fo", subject: "Re: What is going on with your man Jes?", body: "‘Thanks for sharing the foxhole’", timestampRaw: "Thu, May 11, 2017 at 10:17 PM" },
+  ];
 
   return (
     <div className="w-full h-full">
@@ -86,28 +96,20 @@ export default function Page() {
 
             {/* Right: Preview Card */}
             <Card className="p-6 bg-card/80 backdrop-blur border-2">
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <FileText className="w-4 h-4" />
-                  <span>Sample answer with citations</span>
+                  <span>Sample email thread</span>
                 </div>
-                
-                <div className="space-y-3">
-                  <p className="text-sm leading-relaxed">
-                    According to the available flight logs, there are extensive records 
-                    of private flights between 1997 and 2005. The logs document passenger 
-                    manifests, departure and arrival locations, and dates...
-                  </p>
                   
                   <div className="space-y-2">
-                  <div className="text-sm font-medium">Sources (5):</div>
+                  
                   <AnimatedList
-                    items={mockDocuments.slice(0, 5).map((document) => (
-                      <EmailCard
-                        key={document.id}
-                        title={document.title}
-                        page={1}
-                        snippet={document.content}
+                    items={messages.map((message) => (
+                      <ThreadEmailCard
+                        key={message.orderIndex}
+                        thread={thread}
+                        messages={[message]}
                       />
                     ))}
                     className="w-full"
@@ -119,7 +121,7 @@ export default function Page() {
                     displayScrollbar={true}
                   />
 
-                  </div>
+              
                 </div>
               </div>
             </Card>

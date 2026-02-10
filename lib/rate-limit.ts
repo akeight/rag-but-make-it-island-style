@@ -1,44 +1,43 @@
 import crypto from "crypto";
-import { getDb } from "./mongodb";
+import { getDb } from "@/lib/mongodb";
 
-export function sha256(input: string) {
-  return crypto.createHash("sha256").update(input).digest("hex");
+type RateLimitResult = { ok: boolean; remaining: number };
+
+function sha256(s: string) {
+  return crypto.createHash("sha256").update(s).digest("hex");
 }
 
-type RateLimitArgs = {
+export async function enforceRateLimit(opts: {
   ip: string;
-  apiKey: string;
-  windowSec?: number; // default 60
-  max?: number;       // default 30
-};
-
-export async function enforceRateLimit({
-  ip,
-  apiKey,
-  windowSec = 60,
-  max = 30,
-}: RateLimitArgs) {
+  bucket: string;      // e.g. "retrieve" or "chat"
+  windowSec: number;   // e.g. 60
+  max: number;         // e.g. 30
+}): Promise<RateLimitResult> {
   const db = await getDb();
   const col = db.collection("rate_limits");
 
-  const keyHash = sha256(apiKey);
-  const bucket = Math.floor(Date.now() / 1000 / windowSec);
-  const _id = `${ip}:${keyHash}:${bucket}`;
+  // TTL cleanup + unique key
+  await col.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+  await col.createIndex({ key: 1 }, { unique: true });
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + opts.windowSec * 1000);
+
+  const salt = process.env.RATE_LIMIT_SALT || "dev-salt";
+  const key = sha256(`${salt}::${opts.bucket}::${opts.ip}::${opts.windowSec}`);
 
   const res = await col.findOneAndUpdate(
-    { _id },
+    { key, expiresAt: { $gt: now } },
     {
       $inc: { count: 1 },
-      $setOnInsert: { createdAt: new Date(), expiresAt: new Date(Date.now() + windowSec * 1000) },
+      $set: { updatedAt: now },
+      $setOnInsert: { key, count: 0, createdAt: now, expiresAt },
     },
     { upsert: true, returnDocument: "after" }
   );
 
-  const count = (res.value?.count as number) ?? 0;
-  const remaining = Math.max(0, max - count);
-
-  if (count > max) {
-    return { ok: false as const, remaining: 0 };
-  }
-  return { ok: true as const, remaining };
+  const count = Number(res?.value?.count ?? 0);
+  const remaining = Math.max(0, opts.max - count);
+  return { ok: count <= opts.max, remaining };
 }
+

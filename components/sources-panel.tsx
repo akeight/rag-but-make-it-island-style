@@ -2,7 +2,7 @@
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from './ui/sheet';
 import { ScrollArea } from './ui/scroll-area';
-import { Citation } from '@/lib/mock-data';
+import type { Citation } from '@/lib/types';
 import { CitationCard } from '@/components/citations';
 
 interface SourcesPanelProps {

@@ -1,37 +1,23 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { MessageSquarePlus, Settings2 } from 'lucide-react';
-import { Citation, Message, generateMockResponse, promptSuggestions } from '@/lib/mock-data';
+import { MessageSquarePlus } from 'lucide-react';
 import { MessageBubble, TypingIndicator } from '@/components/message-bubble';
 import { ChatComposer } from '@/components/chat-composer';
 import { EmptyChatState } from '@/components/empty-chat-state';
-import SourcesPanel from '@/components/sources-panel';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { AnimatedBackground } from '@/components/animated-background';
+import type { Message } from '@/lib/types';
 
-interface ChatPageProps {
-  onNavigateToDoc: (docId: string, page?: number) => void;
+
+function makeId() {
+  // Works in the browser (client component)
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-export default function ChatPage({ onNavigateToDoc }: ChatPageProps) {
+export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [citationsRequired, setCitationsRequired] = useState(true);
-  const [responseStyle, setResponseStyle] = useState('balanced');
-  const [sourcesOpen, setSourcesOpen] = useState(false);
-  const [currentCitations, setCurrentCitations] = useState<Citation[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,43 +26,76 @@ export default function ChatPage({ onNavigateToDoc }: ChatPageProps) {
     }
   }, [messages, isLoading]);
 
-  const handleSendMessage = async (content: string) => {
-    const userMessage: Message = {
-      id: `msg-${Date.now()}`,
-      role: 'user',
-      content,
-      timestamp: new Date()
-    };
+  const handleSendMessage = useCallback(
+    async (text: string) => {
+      const userText = (text ?? '').trim();
+      if (!userText || isLoading) return;
 
-    setMessages(prev => [...prev, userMessage]);
-    setIsLoading(true);
-
-    // Simulate API delay
-    setTimeout(() => {
-      const { content: responseContent, citations } = generateMockResponse(content);
-      
-      const assistantMessage: Message = {
-        id: `msg-${Date.now()}-assistant`,
-        role: 'assistant',
-        content: responseContent,
-        citations: citationsRequired ? citations : undefined,
-        timestamp: new Date()
+      // Add the user's message immediately
+      const userMsg: Message = {
+        id: makeId(),
+        role: 'user',
+        content: userText,
+        timestamp: new Date(),
       };
+      setMessages((prev) => [...prev, userMsg]);
 
-      setMessages(prev => [...prev, assistantMessage]);
-      setIsLoading(false);
-    }, 1500);
-  };
+      setIsLoading(true);
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: userText, topK: 8 }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+        const errMsg: Message = {
+            id: makeId(),
+            role: 'assistant',
+            content: data?.error ?? 'Request failed.',
+          timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, errMsg]);
+          return;
+        }
+
+        const assistantMsg: Message = {
+          id: makeId(),
+          role: 'assistant',
+          content: data?.answer ?? '',
+          timestamp: new Date(),
+        };
+
+        setMessages((prev) => [...prev, assistantMsg]);
+      } catch (e: unknown) {
+        const errMsg: Message = {
+          id: makeId(),
+          role: 'assistant',
+          content: (e as Error)?.message ?? 'Network error.',
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, errMsg]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isLoading]
+  );
+
+  const promptSuggestions: string[] = [
+    'What emails are related to Trump?',
+    'Which emails mention Prince Andrew?',
+    'How many emails mention pizza?',
+    'Is Elon Musk mentioned in any emails?',
+  ];
 
   const handleNewChat = () => {
     if (window.confirm('Start a new chat? This will clear the current conversation.')) {
       setMessages([]);
     }
-  };
-
-  const handleViewSources = (citations: Citation[]) => {
-    setCurrentCitations(citations);
-    setSourcesOpen(true);
   };
 
   return (
@@ -86,52 +105,8 @@ export default function ChatPage({ onNavigateToDoc }: ChatPageProps) {
       <div className="border-b border-border bg-background px-4 py-3">
         <div className="container mx-auto max-w-5xl flex items-center justify-between">
           <h1 className="text-lg font-semibold">Chat</h1>
-          
+
           <div className="flex items-center gap-4">
-            {/* Citations Required Toggle */}
-            <div className="hidden sm:flex items-center gap-2">
-              <Switch
-                id="citations-mode"
-                checked={citationsRequired}
-                onCheckedChange={setCitationsRequired}
-              />
-              <Label htmlFor="citations-mode" className="text-sm cursor-pointer">
-                Citations required
-              </Label>
-            </div>
-
-            {/* Settings Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Settings2 className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Response Style</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuRadioGroup value={responseStyle} onValueChange={setResponseStyle}>
-                  <DropdownMenuRadioItem value="concise">Concise</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="balanced">Balanced</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="detailed">Detailed</DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-                
-                <DropdownMenuSeparator />
-                <div className="px-2 py-2 sm:hidden">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="citations-mobile" className="text-sm">
-                      Citations required
-                    </Label>
-                    <Switch
-                      id="citations-mobile"
-                      checked={citationsRequired}
-                      onCheckedChange={setCitationsRequired}
-                    />
-                  </div>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
             {/* New Chat Button */}
             <Button variant="outline" onClick={handleNewChat}>
               <MessageSquarePlus className="w-4 h-4 mr-2" />
@@ -147,17 +122,12 @@ export default function ChatPage({ onNavigateToDoc }: ChatPageProps) {
           {messages.length === 0 ? (
             <EmptyChatState
               suggestions={promptSuggestions}
-              onSuggestionClick={handleSendMessage}
+              onSuggestionClick={(s: string) => handleSendMessage(s)}
             />
           ) : (
             <>
-              {messages.map((message) => (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  onCitationClick={onNavigateToDoc}
-                  onViewSources={() => message.citations && handleViewSources(message.citations)}
-                />
+              {messages.map((m) => (
+                <MessageBubble key={m.id} message={m} />
               ))}
               {isLoading && <TypingIndicator />}
             </>
@@ -167,14 +137,6 @@ export default function ChatPage({ onNavigateToDoc }: ChatPageProps) {
 
       {/* Chat Composer */}
       <ChatComposer onSend={handleSendMessage} disabled={isLoading} />
-
-      {/* Sources Panel */}
-      <SourcesPanel
-        isOpen={sourcesOpen}
-        onClose={() => setSourcesOpen(false)}
-        citations={currentCitations}
-        onCitationClick={onNavigateToDoc}
-      />
     </div>
   );
 }

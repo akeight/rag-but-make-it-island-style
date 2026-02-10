@@ -1,26 +1,18 @@
-import React from 'react';
+
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Copy, Flag } from 'lucide-react';
-import { Message } from '@/lib/mock-data';
-import { CitationChip } from '@/components/citations';
+import type { Message } from '@/lib/types';
 import { toast } from 'sonner';
 
 interface MessageBubbleProps {
   message: Message;
-  onCitationClick: (docId: string, page?: number) => void;
-  onViewSources: () => void;
 }
 
-export function MessageBubble({ message, onCitationClick, onViewSources }: MessageBubbleProps) {
+export function MessageBubble({ message }: MessageBubbleProps) {
   const handleCopy = () => {
+    // eslint-disable-next-line prefer-const
     let text = message.content;
-    if (message.citations && message.citations.length > 0) {
-      text += '\n\nSources:\n';
-      message.citations.forEach((citation, idx) => {
-        text += `${idx + 1}. ${citation.docTitle}${citation.page ? ` (p.${citation.page})` : ''}\n`;
-      });
-    }
     navigator.clipboard.writeText(text);
     toast.success('Copied to clipboard');
   };
@@ -45,32 +37,6 @@ export function MessageBubble({ message, onCitationClick, onViewSources }: Messa
         <div className="space-y-4">
           {/* Answer text */}
           <div className="text-sm leading-relaxed">{message.content}</div>
-          
-          {/* Citations */}
-          {message.citations && message.citations.length > 0 && (
-            <div className="space-y-2 pt-2 border-t border-border">
-              <div className="text-xs font-medium text-muted-foreground">
-                Sources ({message.citations.length}):
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {message.citations.map((citation, idx) => (
-                  <CitationChip
-                    key={idx}
-                    citation={citation}
-                    onClick={() => onCitationClick(citation.docId, citation.page)}
-                  />
-                ))}
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onViewSources}
-                className="text-xs h-8"
-              >
-                View full citations
-              </Button>
-            </div>
-          )}
           
           {/* Actions */}
           <div className="flex items-center gap-2 pt-2">
@@ -109,7 +75,7 @@ export function TypingIndicator() {
             <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></div>
             <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
           </div>
-          <span className="text-xs text-muted-foreground">Searching documents...</span>
+          <span className="text-xs text-muted-foreground">Searching emails...</span>
         </div>
       </Card>
     </div>
