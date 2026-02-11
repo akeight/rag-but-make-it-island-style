@@ -99,8 +99,8 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] max-w-[85%] mx-auto flex flex-col">
-      <AnimatedBackground />
+    <div className="relative h-[calc(100vh-4rem)] max-w-[85%] mx-auto flex flex-col">
+      <AnimatedBackground className="z-[-10]" />
       {/* Chat Header */}
       <div className="border-b border-border bg-background px-4 py-3">
         <div className="container mx-auto max-w-5xl flex items-center justify-between">

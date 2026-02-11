@@ -8,7 +8,7 @@ interface AnimatedBackgroundProps {
 
 export function AnimatedBackground({ className = '' }: AnimatedBackgroundProps) {
   return (
-    <div className={`absolute inset-0 overflow-hidden ${className}`}>
+    <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
       <div className="w-full h-full">
   <LightRays
     raysOrigin="bottom-center"

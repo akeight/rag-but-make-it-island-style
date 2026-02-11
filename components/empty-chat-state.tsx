@@ -34,8 +34,7 @@ export function EmptyChatState({ suggestions, onSuggestionClick }: EmptyChatStat
         <div className="text-center space-y-4 max-w-[80%] mx-auto">
           <h2 className="text-4xl font-semibold">Shine a light on your questions. Ask away!</h2>
           <p className="font-light mx-auto text-muted-foreground">
-            Start by asking about the documents in the corpus. 
-            All answers will include citations you can verify.
+            Start by asking about the emails. 
           </p>
         </div>
         

@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Filter, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { mockDocuments } from '@/lib/mock-data';
-import DocRow from '../../components/doc-row';
+import EmailRow from '@/components/email-row';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -149,7 +149,7 @@ export default function DocsPage() {
               </div>
             ) : (
               filteredDocuments.map(doc => (
-                <DocRow
+                <EmailRow
                   key={doc.id}
                   document={doc}
                   onOpen={(docId) => router.push(`/docs/${docId}`)}
