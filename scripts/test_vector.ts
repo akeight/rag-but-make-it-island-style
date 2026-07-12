@@ -25,7 +25,7 @@ const queryVector = emb.data[0].embedding;
 const hits = await db.collection("chunks").aggregate([
   {
     $vectorSearch: {
-      index: "epstein_vector_index",
+      index: "vector_index",
       path: "embedding",
       queryVector,
       numCandidates: 200,
