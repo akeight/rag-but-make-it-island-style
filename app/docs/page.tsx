@@ -1,55 +1,74 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Search, Filter, X } from 'lucide-react';
+import { Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { mockDocuments } from '@/lib/mock-data';
 import EmailRow from '@/components/email-row';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuCheckboxItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import type { ThreadSummary, ThreadListResponse } from '@/lib/types';
+
+const PAGE_SIZE = 20;
 
 export default function DocsPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [threads, setThreads] = useState<ThreadSummary[]>([]);
+  const [total, setTotal] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get unique tags
-  const allTags = Array.from(new Set(mockDocuments.flatMap(d => d.tags)));
+  // Debounce the search input.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedQuery(searchQuery.trim());
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
 
-  // Filter documents
-  const filteredDocuments = mockDocuments.filter(doc => {
-    const matchesSearch = searchQuery === '' || 
-      doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesTags = selectedTags.length === 0 || 
-      selectedTags.some(tag => doc.tags.includes(tag));
-    
-    return matchesSearch && matchesTags;
-  });
+  const loadThreads = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(PAGE_SIZE),
+      });
+      if (debouncedQuery) params.set('q', debouncedQuery);
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags(prev =>
-      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
-    );
-  };
+      const res = await fetch(`/api/threads?${params.toString()}`);
+      const data = (await res.json().catch(() => ({}))) as Partial<ThreadListResponse> & {
+        error?: string;
+      };
 
-  const clearFilters = () => {
-    setSelectedTags([]);
-    setSearchQuery('');
-  };
+      if (!res.ok) {
+        setError(data?.error ?? 'Failed to load threads.');
+        setThreads([]);
+        setTotal(0);
+        return;
+      }
 
-  const hasActiveFilters = selectedTags.length > 0 || searchQuery !== '';
+      setThreads(data.threads ?? []);
+      setTotal(data.total ?? 0);
+    } catch {
+      setError('Network error while loading threads.');
+      setThreads([]);
+      setTotal(0);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [page, debouncedQuery]);
+
+  useEffect(() => {
+    loadThreads();
+  }, [loadThreads]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const hasActiveFilters = searchQuery !== '';
 
   return (
     <div className="h-[calc(100vh-4rem)] max-w-[85%] mx-auto flex flex-col">
@@ -59,104 +78,93 @@ export default function DocsPage() {
           <div className="space-y-2 justify-center items-center flex flex-col">
             <h1 className="text-2xl font-semibold mb-2">Email Thread Browser</h1>
             <p className="text-muted-foreground">
-              Explore {mockDocuments.length} publicly released email threads
+              Explore {total.toLocaleString()} publicly released email threads
             </p>
           </div>
 
-          {/* Search and Filters */}
+          {/* Search */}
           <div className="flex gap-2">
             <div className="relative w-3/4 justify-center items-center flex mx-auto">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search email threads..."
+                placeholder="Search by subject or participant..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8"
               />
             </div>
 
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Tags
-                  {selectedTags.length > 0 && (
-                    <Badge variant="secondary" className="ml-2">
-                      {selectedTags.length}
-                    </Badge>
-                  )}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Filter by Tags</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <ScrollArea className="h-64">
-                  {allTags.map(tag => (
-                    <DropdownMenuCheckboxItem
-                      key={tag}
-                      checked={selectedTags.includes(tag)}
-                      onCheckedChange={() => toggleTag(tag)}
-                    >
-                      {tag}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </ScrollArea>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
             {hasActiveFilters && (
-              <Button variant="ghost" onClick={clearFilters}>
+              <Button variant="ghost" onClick={() => setSearchQuery('')}>
                 <X className="w-4 h-4 mr-2" />
                 Clear
               </Button>
             )}
           </div>
-
-          {/* Active Filters Display */}
-          {hasActiveFilters && (
-            <div className="flex flex-wrap gap-2">
-              {selectedTags.map(tag => (
-                <Badge key={tag} variant="secondary" className="gap-1">
-                  Tag: {tag}
-                  <button
-                    onClick={() => toggleTag(tag)}
-                    className="hover:bg-secondary-foreground/20 rounded-full p-0.5"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Document List */}
+      {/* Thread List */}
       <ScrollArea className="flex-1">
         <div className="container mx-auto max-w-5xl px-4 py-6">
           <div className="mb-4 text-sm text-muted-foreground">
-            Showing {filteredDocuments.length} of {mockDocuments.length} email threads
+            {isLoading
+              ? 'Loading…'
+              : `Showing ${threads.length} of ${total.toLocaleString()} threads (page ${page} of ${totalPages})`}
           </div>
-          
+
           <div className="space-y-3">
-            {filteredDocuments.length === 0 ? (
+            {error ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground mb-4">No email threads found</p>
-                <Button variant="outline" onClick={clearFilters}>
-                  Clear filters
+                <p className="text-destructive mb-4">{error}</p>
+                <Button variant="outline" onClick={loadThreads}>
+                  Retry
                 </Button>
               </div>
+            ) : !isLoading && threads.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground mb-4">No email threads found</p>
+                {hasActiveFilters && (
+                  <Button variant="outline" onClick={() => setSearchQuery('')}>
+                    Clear search
+                  </Button>
+                )}
+              </div>
             ) : (
-              filteredDocuments.map(doc => (
+              threads.map((thread) => (
                 <EmailRow
-                  key={doc.id}
-                  document={doc}
-                  onOpen={(docId) => router.push(`/docs/${docId}`)}
+                  key={thread.threadKey}
+                  thread={thread}
+                  onOpen={(threadKey) => router.push(`/docs/${threadKey}`)}
                 />
               ))
             )}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 mt-6">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1 || isLoading}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages || isLoading}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
         </div>
       </ScrollArea>
     </div>
