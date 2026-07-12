@@ -1,5 +1,10 @@
 import { MongoClient } from "mongodb";
 
+// Name of the Atlas Vector Search index on the `chunks` collection.
+// Keep this in sync with scripts/create_vector_index.ts and any route that
+// runs a $vectorSearch aggregation.
+export const VECTOR_INDEX = "vector_index";
+
 const uri = process.env.MONGODB_URI!;
 if (!uri) throw new Error("Missing MONGODB_URI in .env.local");
 
