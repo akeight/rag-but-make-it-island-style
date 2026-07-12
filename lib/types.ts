@@ -1,8 +1,10 @@
 export interface Citation {
-  docId: string;
-  docTitle: string;
-  page?: number;
-  section?: string;
+  ref: string;
+  score: number;
+  chunkKey: string;
+  threadKey: string;
+  messageKey: string;
+  chunkIndex: number;
   snippet: string;
 }
 

@@ -1,15 +1,16 @@
 
 import { Card } from './ui/card';
 import { Button } from './ui/button';
-import { Copy, Flag } from 'lucide-react';
+import { Copy, Flag, BookOpen } from 'lucide-react';
 import type { Message } from '@/lib/types';
 import { toast } from 'sonner';
 
 interface MessageBubbleProps {
   message: Message;
+  onShowSources?: (message: Message) => void;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, onShowSources }: MessageBubbleProps) {
   const handleCopy = () => {
     // eslint-disable-next-line prefer-const
     let text = message.content;
@@ -40,6 +41,17 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           
           {/* Actions */}
           <div className="flex items-center gap-2 pt-2">
+            {message.citations && message.citations.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onShowSources?.(message)}
+                className="h-8"
+              >
+                <BookOpen className="w-3 h-3 mr-1" />
+                Sources ({message.citations.length})
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
