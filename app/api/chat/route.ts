@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { z } from "zod";
-import { getDb } from "@/lib/mongodb";
+import { getDb, VECTOR_INDEX } from "@/lib/mongodb";
 import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
   const hits = await db.collection("chunks").aggregate([
     {
       $vectorSearch: {
-        index: "vector_index",
+        index: VECTOR_INDEX,
         path: "embedding",
         queryVector,
         numCandidates,
