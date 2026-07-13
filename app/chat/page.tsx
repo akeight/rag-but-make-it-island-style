@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { MessageSquarePlus } from 'lucide-react';
 import { MessageBubble, TypingIndicator } from '@/components/message-bubble';
 import { ChatComposer } from '@/components/chat-composer';
 import { EmptyChatState } from '@/components/empty-chat-state';
 import { AnimatedBackground } from '@/components/animated-background';
-import type { Message } from '@/lib/types';
+import SourcesPanel from '@/components/sources-panel';
+import type { Message, Citation } from '@/lib/types';
 
 
 function makeId() {
@@ -16,8 +18,11 @@ function makeId() {
 }
 
 export default function ChatPage() {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [activeCitations, setActiveCitations] = useState<Citation[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -66,6 +71,7 @@ export default function ChatPage() {
           id: makeId(),
           role: 'assistant',
           content: data?.answer ?? '',
+          citations: Array.isArray(data?.citations) ? (data.citations as Citation[]) : undefined,
           timestamp: new Date(),
         };
 
@@ -98,6 +104,19 @@ export default function ChatPage() {
     }
   };
 
+  const handleShowSources = useCallback((message: Message) => {
+    setActiveCitations(message.citations ?? []);
+    setSourcesOpen(true);
+  }, []);
+
+  const handleCitationClick = useCallback(
+    (threadKey: string, messageKey?: string) => {
+      const qs = messageKey ? `?messageKey=${encodeURIComponent(messageKey)}` : '';
+      router.push(`/docs/${threadKey}${qs}`);
+    },
+    [router]
+  );
+
   return (
     <div className="relative h-[calc(100vh-4rem)] max-w-[85%] mx-auto flex flex-col">
       <AnimatedBackground className="z-[-10]" />
@@ -127,7 +146,7 @@ export default function ChatPage() {
           ) : (
             <>
               {messages.map((m) => (
-                <MessageBubble key={m.id} message={m} />
+                <MessageBubble key={m.id} message={m} onShowSources={handleShowSources} />
               ))}
               {isLoading && <TypingIndicator />}
             </>
@@ -137,6 +156,14 @@ export default function ChatPage() {
 
       {/* Chat Composer */}
       <ChatComposer onSend={handleSendMessage} disabled={isLoading} />
+
+      {/* Sources Panel */}
+      <SourcesPanel
+        isOpen={sourcesOpen}
+        onClose={() => setSourcesOpen(false)}
+        citations={activeCitations}
+        onCitationClick={handleCitationClick}
+      />
     </div>
   );
 }
